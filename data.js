@@ -1,4 +1,5 @@
-[
+//Beispiel-Daten
+const co2EmissionsData = [
   {
     "ID": 1,
     "Code": "AF",
@@ -3119,4 +3120,96 @@
     "Sektor": "Tourismus/Hotels",
     "Emmission": 0.43
   }
-]
+];
+
+//alpine.js State-Methode
+function emissionsTracker() {
+  return {
+    data: co2EmissionsData,
+    q: '',
+    sortKey: 'Land',
+    order: 'asc',
+    lang: 'de',
+    dir: 'ltr',
+    modal: null,
+
+    toggleLang() {
+      const isDe = this.lang === 'de';
+      this.lang = isDe ? 'ar' : 'de';
+      this.dir = isDe ? 'rtl' : 'ltr';
+    },
+
+    setModal(id) {
+      this.modal = id;
+      document.body.style.overflow = id ? 'hidden' : '';
+    },
+
+    clean(str) {
+      if (!str) return '';
+      const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+      return str.replace(/[&<>"']/g, c => map[c]);
+    },
+
+    sort(key) {
+      if (this.sortKey === key) {
+        this.order = this.order === 'asc' ? 'desc' : 'asc';
+      } else {
+        this.sortKey = key;
+        this.order = 'asc';
+      }
+    },
+
+    get rows() {
+      let result = [...this.data];
+      const term = this.clean(this.q).toLowerCase();
+      const factor = this.order === 'asc' ? 1 : -1;
+
+      if (term) {
+        result = result.filter(r =>
+          (r.Land?.toLowerCase().includes(term)) ||
+          (r.Unternehmen?.toLowerCase().includes(term))
+        );
+      }
+
+      return result.sort((a, b) => {
+        const k = this.sortKey;
+
+        if (k === 'Emmission') {
+          return (a[k] - b[k]) * factor;
+        }
+
+        const valA = String(a[k] || '');
+        const valB = String(b[k] || '');
+
+        return valA.localeCompare(valB) * factor;
+      });
+    },
+
+    get dashboard() {
+      const all = this.data;
+      const total = all.reduce((acc, curr) => acc + curr.Emmission, 0);
+
+      const top = [...all]
+        .sort((a, b) => b.Emmission - a.Emmission)
+        .slice(0, 5);
+
+      const secMap = all.reduce((acc, curr) => {
+        acc[curr.Sektor] = (acc[curr.Sektor] || 0) + curr.Emmission;
+        return acc;
+      }, {});
+
+      const secSorted = Object.entries(secMap)
+        .map(([name, val]) => ({ name, val }))
+        .sort((a, b) => b.val - a.val);
+
+      return {
+        sum: total.toFixed(1),
+        avg: (total / all.length).toFixed(1),
+        count: all.length,
+        leaders: top,
+        bySector: secSorted,
+        max: top[0]?.Emmission || 100
+      };
+    }
+  };
+}
