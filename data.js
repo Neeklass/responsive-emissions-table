@@ -3125,31 +3125,35 @@ const co2EmissionsData = [
 //alpine.js State-Methode
 function emissionsTracker() {
   return {
-    data: co2EmissionsData,
-    q: '',
-    sortKey: 'Land',
-    order: 'asc',
-    lang: 'de',
-    dir: 'ltr',
-    modal: null,
+    data: co2EmissionsData, //Rohdaten
+    q: '', //Suchbegriff zur Filterung
+    sortKey: 'Land', //Zu sortierende Spalte
+    order: 'asc', //Sortierreihenfolge
+    lang: 'de', //Sprache
+    dir: 'ltr', //Sprachkultur
+    modal: null, //ID des geöffneten Modals
 
+    //Sprachkultur
     toggleLang() {
       const isDe = this.lang === 'de';
       this.lang = isDe ? 'ar' : 'de';
       this.dir = isDe ? 'rtl' : 'ltr';
     },
 
+    //Kein Scrollen im Body
     setModal(id) {
       this.modal = id;
       document.body.style.overflow = id ? 'hidden' : '';
     },
 
+    //XSS Prävention
     clean(str) {
       if (!str) return '';
       const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
       return str.replace(/[&<>"']/g, c => map[c]);
     },
 
+    //Sortierspalte ändern
     sort(key) {
       if (this.sortKey === key) {
         this.order = this.order === 'asc' ? 'desc' : 'asc';
@@ -3159,6 +3163,7 @@ function emissionsTracker() {
       }
     },
 
+    //Tabellenanzeige
     get rows() {
       let result = [...this.data];
       const term = this.clean(this.q).toLowerCase();
@@ -3174,10 +3179,12 @@ function emissionsTracker() {
       return result.sort((a, b) => {
         const k = this.sortKey;
 
+        //Sortierung Float
         if (k === 'Emmission') {
           return (a[k] - b[k]) * factor;
         }
 
+        //Sortierung String
         const valA = String(a[k] || '');
         const valB = String(b[k] || '');
 
@@ -3185,6 +3192,7 @@ function emissionsTracker() {
       });
     },
 
+    //Statistiken
     get dashboard() {
       const all = this.data;
       const total = all.reduce((acc, curr) => acc + curr.Emmission, 0);
@@ -3203,12 +3211,12 @@ function emissionsTracker() {
         .sort((a, b) => b.val - a.val);
 
       return {
-        sum: total.toFixed(1),
-        avg: (total / all.length).toFixed(1),
-        count: all.length,
-        leaders: top,
-        bySector: secSorted,
-        max: top[0]?.Emmission || 100
+        sum: total.toFixed(1), //Gesamt
+        avg: (total / all.length).toFixed(1), //Durchschnitt
+        count: all.length, //Anzahl der Datensätze
+        leaders: top, //Leaderboard
+        bySector: secSorted, //Sektor-Emmission
+        max: top[0]?.Emmission || 100 //Max-Skalierung
       };
     }
   };
